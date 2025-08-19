@@ -1,0 +1,13 @@
+# config/config.yaml
+app:
+  port: 8080
+  jwt_secret: "deeliai"
+
+database:
+  driver: "postgres"
+  host: "localhost"
+  port: 5432
+  user: "user"
+  password: "password"
+  dbname: "deeliai"
+  sslmode: "disable"
