@@ -10,11 +10,12 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
-	"time"
 
 	"deeliai/config"
 	"deeliai/internal/handler"
+	"deeliai/internal/queue"
 	"deeliai/internal/repository/sqlximpl"
+	"deeliai/internal/scraper"
 	"deeliai/internal/service"
 
 	"github.com/MatusOllah/slogcolor"
@@ -26,10 +27,10 @@ import (
 func main() {
 	gin.ForceConsoleColor()
 
-	// 1. 初始化結構化日誌
+	// 初始化結構化日誌
 	slog.SetDefault(slog.New(slogcolor.NewHandler(os.Stderr, slogcolor.DefaultOptions)))
 
-	// 2. 載入設定
+	// 載入設定
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		slog.Error("Failed to load configuration", "error", err)
@@ -37,7 +38,7 @@ func main() {
 	}
 	slog.Info("Configuration loaded successfully")
 
-	// 3. 初始化資料庫連線
+	// 初始化資料庫連線
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password, cfg.Database.DBName, cfg.Database.SSLMode)
 
@@ -48,28 +49,36 @@ func main() {
 	}
 	defer db.Close()
 
-	// 4. 依賴注入：組裝 Repository, Service, Handler
+	// 建立一個有緩衝的爬取任務佇列
+	scrapeQueue := make(chan string, 100)
+	defer close(scrapeQueue)
+
+	// 這裡決定使用 ChannelProducer
+	producer := queue.NewChannelProducer(scrapeQueue)
+	defer producer.Close() // 確保在應用程式結束時關閉 channel
+
+	// 依賴注入：組裝 Repository, Service, Handler
 	userRepo := sqlximpl.NewUserRepository(db)
-	// articleRepo := repository.NewArticleRepository(db)
+	articleRepo := sqlximpl.NewArticleRepository(db)
 
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(cfg.App.JWTSecret)
-	// articleService := service.NewArticleService(articleRepo)
+	articleService := service.NewArticleService(articleRepo, producer)
 
 	userHandler := handler.NewUserHandler(userService, authService)
-	// articleHandler := handler.NewArticleHandler(articleService)
+	articleHandler := handler.NewArticleHandler(articleService)
 
-	// 5. 設定路由
-	router := handler.SetupRouter(userHandler)
+	// 設定路由
+	router := handler.SetupRouter(userHandler, articleHandler)
 	slog.Info("Router setup complete")
 
-	// 6. 建立 HTTP Server
+	// 建立 HTTP Server
 	srv := &http.Server{
 		Addr:    ":" + strconv.Itoa(cfg.App.Port),
 		Handler: router,
 	}
 
-	// 7. 實現 Graceful Shutdown
+	// 實現 Graceful Shutdown
 	// 在一個新的 goroutine 中啟動 server，避免阻塞
 	go func() {
 		slog.Info(fmt.Sprintf("Server starting on port %d", cfg.App.Port))
@@ -79,15 +88,23 @@ func main() {
 		}
 	}()
 
+	// 建立一個有超時的 context，例如 5 秒
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 啟動背景 worker
+	scrapeWorker := scraper.NewScrapeWorker(articleRepo, scrapeQueue, 2)
+	go scrapeWorker.Start()
+
+	// 啟動排程器 (僅負責生產)
+	scrapeScheduler := scraper.NewScrapeScheduler(articleRepo, producer)
+	go scrapeScheduler.Start(ctx) // 將主程式的 context 傳入
+
 	// 等待中斷訊號 (SIGINT or SIGTERM)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit // 阻塞直到接收到訊號
 	slog.Info("Shutting down server...")
-
-	// 建立一個有超時的 context，例如 5 秒
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
 	// 呼叫 server.Shutdown() 進行優雅關閉
 	// 這會等待正在處理的請求結束，但不再接受新請求

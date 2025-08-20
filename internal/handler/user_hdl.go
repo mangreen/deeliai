@@ -89,14 +89,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 func (h *UserHandler) Me(c *gin.Context) {
 	// 從 context 中取出我們在 middleware 存入的使用者 ID
-	value, exists := c.Get("email")
+	emailAny, exists := c.Get("email")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
 	// 根據 email 查詢使用者資訊
-	user, err := h.userService.GetByEmail(c.Request.Context(), value.(string))
+	user, err := h.userService.FindByEmail(c.Request.Context(), emailAny.(string))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return

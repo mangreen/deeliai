@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(userHandler *UserHandler) *gin.Engine {
+func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler) *gin.Engine {
 	// gin.ReleaseMode or gin.DebugMode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -41,11 +41,10 @@ func SetupRouter(userHandler *UserHandler) *gin.Engine {
 	apiV1 := r.Group("/api/v1")
 	apiV1.Use(middleware.AuthMiddleware(userHandler.AuthService))
 	{
-		// articles := apiV1.Group("/articles")
-		// {
-
-		// 	//articles.GET("/me", userHandler.Me)
-		// }
+		// 文章收藏 API
+		apiV1.POST("/articles", articleHandler.PostArticle)
+		apiV1.GET("/articles", articleHandler.GetArticles)
+		apiV1.DELETE("/articles/:id", articleHandler.DeleteArticle)
 	}
 
 	return r

@@ -47,14 +47,14 @@ func (s *UserService) Register(ctx context.Context, email, password string) (*mo
 	return newUser, nil
 }
 
-func (s *UserService) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	return s.userRepo.GetByEmail(ctx, email)
+func (s *UserService) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+	return s.userRepo.FindByEmail(ctx, email)
 }
 
 // Authenticate 驗證使用者帳號與密碼，成功則回傳使用者資訊
 func (s *UserService) Authenticate(ctx context.Context, email, password string) (*model.User, error) {
 	// 1. 根據 email 從資料庫查詢使用者
-	user, err := s.userRepo.GetByEmail(ctx, email)
+	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil || user == nil {
 		// 建議統一回傳 "Invalid email or password" 以避免暴露使用者是否存在
 		return nil, errors.New("invalid email or password")
