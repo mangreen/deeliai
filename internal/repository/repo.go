@@ -24,3 +24,9 @@ type ArticleRepository interface {
 	Delete(ctx context.Context, articleID uuid.UUID, userEmail string) error
 	FindFailedScrapes(ctx context.Context) ([]model.Article, error)
 }
+
+type RatingRepository interface {
+	CreateOrUpdate(ctx context.Context, rating *model.Rating) (*model.Rating, error)
+	FindRatingByUserEmailAndArticleID(ctx context.Context, userEmail string, articleID uuid.UUID) (*model.Rating, error)
+	Delete(ctx context.Context, userEmail string, articleID uuid.UUID) error
+}

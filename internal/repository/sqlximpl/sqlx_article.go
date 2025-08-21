@@ -23,7 +23,7 @@ func NewArticleRepository(db *sqlx.DB) repository.ArticleRepository {
 // Create 將新文章記錄存入資料庫
 func (r *sqlxArticleRepository) Create(ctx context.Context, article *model.Article) (*model.Article, error) {
 	newArticle := &model.Article{}
-	query := `INSERT INTO articles (user_email, url) VALUES ($1, $2) RETURNING id, user_email, url, scrape_status, created_at, updated_at`
+	query := `INSERT INTO articles (user_email, url) VALUES ($1, $2) RETURNING *`
 	// 對於支援 RETURNING 的資料庫 (如 PostgreSQL)，可以這樣取回 ID
 	// 對於 MySQL，需要用 LastInsertId()
 	err := r.db.QueryRowxContext(ctx, query, article.UserEmail, article.URL).StructScan(newArticle)

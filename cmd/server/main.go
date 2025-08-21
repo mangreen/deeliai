@@ -60,16 +60,19 @@ func main() {
 	// 依賴注入：組裝 Repository, Service, Handler
 	userRepo := sqlximpl.NewUserRepository(db)
 	articleRepo := sqlximpl.NewArticleRepository(db)
+	ratingRepo := sqlximpl.NewRatingRepository(db)
 
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(cfg.App.JWTSecret)
 	articleService := service.NewArticleService(articleRepo, producer)
+	ratingService := service.NewRatingService(ratingRepo)
 
 	userHandler := handler.NewUserHandler(userService, authService)
 	articleHandler := handler.NewArticleHandler(articleService)
+	ratingHandler := handler.NewRatingHandler(ratingService)
 
 	// 設定路由
-	router := handler.SetupRouter(userHandler, articleHandler)
+	router := handler.SetupRouter(userHandler, articleHandler, ratingHandler)
 	slog.Info("Router setup complete")
 
 	// 建立 HTTP Server

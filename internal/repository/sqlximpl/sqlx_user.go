@@ -19,7 +19,7 @@ func NewUserRepository(db *sqlx.DB) repository.UserRepository {
 
 func (r *sqlxUserRepository) Create(ctx context.Context, user *model.User) (*model.User, error) {
 	newUser := &model.User{}
-	query := `INSERT INTO users (email, password) VALUES ($1, $2) RETURNING email, password, created_at, updated_at`
+	query := `INSERT INTO users (email, password) VALUES ($1, $2) RETURNING *`
 	// 對於支援 RETURNING 的資料庫 (如 PostgreSQL)，可以這樣取回 ID
 	// 對於 MySQL，需要用 LastInsertId()
 	err := r.db.QueryRowxContext(ctx, query, user.Email, user.Password).StructScan(newUser)

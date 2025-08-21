@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler) *gin.Engine {
+func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratingHandler *RatingHandler) *gin.Engine {
 	// gin.ReleaseMode or gin.DebugMode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -45,6 +45,10 @@ func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler) *gin.
 		apiV1.POST("/articles", articleHandler.PostArticle)
 		apiV1.GET("/articles", articleHandler.GetArticles)
 		apiV1.DELETE("/articles/:id", articleHandler.DeleteArticle)
+
+		apiV1.POST("/articles/:id/rate", ratingHandler.RateArticle)
+		apiV1.GET("/articles/:id/rate", ratingHandler.GetRating)
+		apiV1.DELETE("/articles/:id/rate", ratingHandler.DeleteRating)
 	}
 
 	return r
