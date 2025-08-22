@@ -95,6 +95,7 @@ docker-compose up -d postgres
 ```
 migrate -path migrations -database "postgres://user:password@localhost:5432/deeliai?sslmode=disable" up
 ```
+或是利用 PostgreSQL GUI 或其他工具***依序***手動執行 migrations 資料夾下的 *.up.sql
 
 4. 運行專案
 ```
@@ -103,4 +104,9 @@ go run ./cmd/server/main.go
 
 ### 3. API 文件
 在 server ***啟動後***，在瀏覽器中打開 http://localhost:8080/swagger/index.html，即可瀏覽完整的 API 文件並進行測試。
+
+如果有 route 有更新，可運行 swag 工具來重新生成 API 文件
+```
+swag init -g ./cmd/server/main.go -o ./docs
+```
    
