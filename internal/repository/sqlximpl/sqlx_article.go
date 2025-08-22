@@ -128,6 +128,11 @@ func (r *sqlxArticleRepository) FindFailedScrapes(ctx context.Context) ([]model.
 	return articles, nil
 }
 
+type ArticleScore struct {
+	model.Article
+	Score int `db:"score"`
+}
+
 func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userEmail string) ([]model.Article, error) {
 	query := `
         WITH user_tag_weights AS (
@@ -151,7 +156,7 @@ func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userE
         LIMIT 10
     `
 
-	var articles []interfaces.ArticleScore
+	var articles []ArticleScore
 	err := r.db.SelectContext(ctx, &articles, query, userEmail)
 	if err != nil {
 		slog.Error("Failed to find recommend articles", "error", err)

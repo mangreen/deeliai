@@ -33,8 +33,3 @@ type RatingRepository interface {
 	FindRatingByUserEmailAndArticleID(ctx context.Context, userEmail string, articleID uuid.UUID) (*model.Rating, error)
 	Delete(ctx context.Context, userEmail string, articleID uuid.UUID) error
 }
-
-type ArticleScore struct {
-	model.Article
-	Score int `db:"score"`
-}
