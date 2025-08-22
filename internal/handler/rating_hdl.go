@@ -18,7 +18,8 @@ func NewRatingHandler(s *service.RatingService) *RatingHandler {
 }
 
 type RantingRequest struct {
-	Rating int `json:"rating" binding:"required,gte=1,lte=5"`
+	Rating int      `json:"rating" binding:"required,gte=1,lte=5"`
+	Tags   []string `json:"tags" binding:"required"`
 }
 
 // RateArticle 處理 POST /articles/:id/rate 請求
@@ -38,11 +39,16 @@ func (h *RatingHandler) RateArticle(c *gin.Context) {
 
 	var req RantingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid rating value, must be between 1 and 5"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
-	rating, err := h.ratingService.RateArticle(c.Request.Context(), emailAny.(string), articleUUID, req.Rating)
+	if len(req.Tags) < 1 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request body: at least 1 tag"})
+		return
+	}
+
+	rating, err := h.ratingService.RateArticle(c.Request.Context(), emailAny.(string), articleUUID, req.Rating, req.Tags)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

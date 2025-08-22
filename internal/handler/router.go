@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratingHandler *RatingHandler) *gin.Engine {
+func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratingHandler *RatingHandler, recommendHandler *RecommendHandler) *gin.Engine {
 	// gin.ReleaseMode or gin.DebugMode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -49,6 +49,8 @@ func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratin
 		apiV1.POST("/articles/:id/rate", ratingHandler.RateArticle)
 		apiV1.GET("/articles/:id/rate", ratingHandler.GetRating)
 		apiV1.DELETE("/articles/:id/rate", ratingHandler.DeleteRating)
+
+		apiV1.GET("/recommendations", recommendHandler.GetRecommendations)
 	}
 
 	return r

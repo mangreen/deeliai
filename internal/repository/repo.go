@@ -23,6 +23,9 @@ type ArticleRepository interface {
 	FindByIDAndUserEmail(ctx context.Context, articleID uuid.UUID, userEmail string) (*model.Article, error)
 	Delete(ctx context.Context, articleID uuid.UUID, userEmail string) error
 	FindFailedScrapes(ctx context.Context) ([]model.Article, error)
+
+	ListRecommendArticles(ctx context.Context, userEmail string) ([]model.Article, error)
+	FindLatestArticles(ctx context.Context, userEmail string, limit int) ([]model.Article, error)
 }
 
 type RatingRepository interface {

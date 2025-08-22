@@ -2,7 +2,7 @@ package sqlximpl
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"deeliai/internal/model"
@@ -83,7 +83,7 @@ func (r *sqlxArticleRepository) Delete(ctx context.Context, articleID uuid.UUID,
 		return err
 	}
 	if rowsAffected == 0 {
-		return errors.New("article not found or user not authorized")
+		return fmt.Errorf("article not found or user not authorized")
 	}
 	return nil
 }
@@ -93,5 +93,50 @@ func (r *sqlxArticleRepository) FindFailedScrapes(ctx context.Context) ([]model.
 	var articles []model.Article
 	query := `SELECT id, url, retry_count FROM articles WHERE scrape_status = 'failed' AND retry_count < 3`
 	err := r.db.SelectContext(ctx, &articles, query)
+	return articles, err
+}
+
+func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userEmail string) ([]model.Article, error) {
+	query := `
+        WITH user_tag_weights AS (
+            SELECT unnest(tags) AS tag, SUM(scores) AS weight
+            FROM ratings
+            WHERE user_email = $1
+            GROUP BY tag
+        )
+        SELECT a.*, COALESCE(SUM(t.weight), 0) AS score
+        FROM articles a
+        JOIN ratings r ON a.id = r.article_id
+        JOIN LATERAL unnest(r.tags) AS rt(tag) ON TRUE
+        LEFT JOIN user_tag_weights t ON rt.tag = t.tag
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ratings r2
+            WHERE r2.article_id = a.id
+              AND r2.user_email = $1
+        )
+        GROUP BY a.id
+        ORDER BY score DESC
+        LIMIT 10
+    `
+
+	var articles []model.ArticleScore
+	err := r.db.SelectContext(ctx, &articles, query, userEmail)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find recommend articles: %w", err)
+	}
+
+	result := make([]model.Article, len(articles))
+	for i, a := range articles {
+		result[i] = a.Article
+	}
+
+	return result, nil
+}
+
+// FindLatestArticles 找出最新的文章
+func (r *sqlxArticleRepository) FindLatestArticles(ctx context.Context, userEmail string, limit int) ([]model.Article, error) {
+	var articles []model.Article
+	query := `SELECT id, url, title, description, image_url FROM articles WHERE user_email != $1 ORDER BY created_at DESC LIMIT $2`
+	err := r.db.SelectContext(ctx, &articles, query, userEmail, limit)
 	return articles, err
 }

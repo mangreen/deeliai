@@ -66,13 +66,15 @@ func main() {
 	authService := service.NewAuthService(cfg.App.JWTSecret)
 	articleService := service.NewArticleService(articleRepo, producer)
 	ratingService := service.NewRatingService(ratingRepo)
+	recommendService := service.NewRecommendService(articleRepo, ratingRepo)
 
 	userHandler := handler.NewUserHandler(userService, authService)
 	articleHandler := handler.NewArticleHandler(articleService)
 	ratingHandler := handler.NewRatingHandler(ratingService)
+	recommendHandler := handler.NewRecommendHandler(recommendService)
 
 	// 設定路由
-	router := handler.SetupRouter(userHandler, articleHandler, ratingHandler)
+	router := handler.SetupRouter(userHandler, articleHandler, ratingHandler, recommendHandler)
 	slog.Info("Router setup complete")
 
 	// 建立 HTTP Server

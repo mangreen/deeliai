@@ -2,7 +2,8 @@ CREATE TABLE ratings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_email VARCHAR(255) NOT NULL,
     article_id UUID NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    scores INT NOT NULL CHECK (scores >= 1 AND scores <= 5),
+    tags TEXT[],
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 

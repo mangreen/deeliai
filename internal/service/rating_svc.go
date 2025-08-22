@@ -19,15 +19,16 @@ func NewRatingService(repo repository.RatingRepository) *RatingService {
 }
 
 // RateArticle 為文章評分
-func (s *RatingService) RateArticle(ctx context.Context, userEmail string, articleUUID uuid.UUID, ratingValue int) (*model.Rating, error) {
-	if ratingValue < 1 || ratingValue > 5 {
+func (s *RatingService) RateArticle(ctx context.Context, userEmail string, articleUUID uuid.UUID, scores int, tags []string) (*model.Rating, error) {
+	if scores < 1 || scores > 5 {
 		return nil, fmt.Errorf("rating must be between 1 and 5")
 	}
 
 	rating := &model.Rating{
 		UserEmail: userEmail,
 		ArticleID: articleUUID,
-		Rating:    ratingValue,
+		Scores:    scores,
+		Tags:      tags,
 	}
 
 	return s.ratingRepo.CreateOrUpdate(ctx, rating)
