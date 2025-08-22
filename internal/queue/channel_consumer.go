@@ -30,9 +30,11 @@ func (cc *channelConsumer) Start() {
 	// 啟動多個 worker goroutine
 	for i := 0; i < cc.workerCount; i++ {
 		log.Printf("Worker #%d started...", i)
-		// 呼叫 QueueConsumer 執行 processScrapeTask
-		go cc.Consume()
-		log.Printf("Worker #%d stopped.", i)
+		// 呼叫 cc.Consume 執行 cc.scrapeService.ProcessScrapeTask
+		go func(id int) {
+			cc.Consume()
+			log.Printf("Worker #%d stopped.", id) // 真的結束時才印
+		}(i)
 	}
 }
 
