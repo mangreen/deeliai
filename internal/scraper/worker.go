@@ -37,7 +37,7 @@ func (w *ScrapeWorker) Start() {
 	for i := 0; i < w.workerCount; i++ {
 		log.Printf("Worker #%d started...", i)
 		// 呼叫 QueueConsumer 執行 processScrapeTask
-		w.consumer.Consume(w.processScrapeTask)
+		go w.consumer.Consume(w.processScrapeTask)
 		log.Printf("Worker #%d stopped.", i)
 	}
 }
