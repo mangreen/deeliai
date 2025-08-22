@@ -2,7 +2,8 @@ package sqlximpl
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log/slog"
 	"time"
 
 	"deeliai/internal/model"
@@ -28,6 +29,7 @@ func (r *sqlxArticleRepository) Create(ctx context.Context, article *model.Artic
 	// 對於 MySQL，需要用 LastInsertId()
 	err := r.db.QueryRowxContext(ctx, query, article.UserEmail, article.URL).StructScan(newArticle)
 	if err != nil {
+		slog.Error("Failed to create article", "error", err)
 		return nil, err
 	}
 	return newArticle, nil
@@ -37,14 +39,24 @@ func (r *sqlxArticleRepository) Create(ctx context.Context, article *model.Artic
 func (r *sqlxArticleRepository) UpdateMetadata(ctx context.Context, articleID uuid.UUID, title, description, imageURL string) error {
 	query := `UPDATE articles SET title=$1, description=$2, image_url=$3, scrape_status='success', updated_at=$4 WHERE id=$5`
 	_, err := r.db.ExecContext(ctx, query, title, description, imageURL, time.Now(), articleID)
-	return err
+	if err != nil {
+		slog.Error("Failed to update article metadata", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // MarkScrapeFailed 標記爬取失敗並增加重試次數
 func (r *sqlxArticleRepository) MarkScrapeFailed(ctx context.Context, articleID uuid.UUID) error {
 	query := `UPDATE articles SET scrape_status='failed', retry_count=retry_count+1, updated_at=$1 WHERE id=$2`
 	_, err := r.db.ExecContext(ctx, query, time.Now(), articleID)
-	return err
+	if err != nil {
+		slog.Error("Failed to marke scrape failed", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // ListByUserEmail 根據使用者 ID 取得文章列表
@@ -52,7 +64,12 @@ func (r *sqlxArticleRepository) ListByUserEmail(ctx context.Context, userEmail s
 	var articles []model.Article
 	query := `SELECT id, user_email, url, title, description, image_url, scrape_status, created_at FROM articles WHERE user_email = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	err := r.db.SelectContext(ctx, &articles, query, userEmail, limit, offset)
-	return articles, err
+	if err != nil {
+		slog.Error("Failed to list articles by email", "error", err)
+		return nil, err
+	}
+
+	return articles, nil
 }
 
 // FindByID 根據文章 ID 取得單篇文章
@@ -60,7 +77,12 @@ func (r *sqlxArticleRepository) FindByID(ctx context.Context, articleID uuid.UUI
 	article := &model.Article{}
 	query := `SELECT id, user_email, url, title, description, image_url, scrape_status, created_at FROM articles WHERE id = $1 LIMIT 1`
 	err := r.db.GetContext(ctx, article, query, articleID)
-	return article, err
+	if err != nil {
+		slog.Error("Failed to get article by id", "error", err)
+		return nil, err
+	}
+
+	return article, nil
 }
 
 // FindByIDAndUserEmail 根據文章 ID 和使用者 ID 取得單篇文章
@@ -68,7 +90,12 @@ func (r *sqlxArticleRepository) FindByIDAndUserEmail(ctx context.Context, articl
 	article := &model.Article{}
 	query := `SELECT id, user_email, url, title, description, image_url, scrape_status, created_at FROM articles WHERE id = $1 AND user_email = $2 LIMIT 1`
 	err := r.db.GetContext(ctx, article, query, articleID, userEmail)
-	return article, err
+	if err != nil {
+		slog.Error("Failed to get article by id & email", "error", err)
+		return nil, err
+	}
+
+	return article, nil
 }
 
 // Delete 刪除文章
@@ -76,15 +103,15 @@ func (r *sqlxArticleRepository) Delete(ctx context.Context, articleID uuid.UUID,
 	query := `DELETE FROM articles WHERE id = $1 AND user_email = $2`
 	res, err := r.db.ExecContext(ctx, query, articleID, userEmail)
 	if err != nil {
+		slog.Error("Failed to delete article", "error", err)
 		return err
 	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return err
+
+	if rowsAffected, err := res.RowsAffected(); rowsAffected == 0 {
+		slog.Error("article not found or user not authorized", "error", err)
+		return errors.New("article not found or user not authorized")
 	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("article not found or user not authorized")
-	}
+
 	return nil
 }
 
@@ -93,7 +120,12 @@ func (r *sqlxArticleRepository) FindFailedScrapes(ctx context.Context) ([]model.
 	var articles []model.Article
 	query := `SELECT id, url, retry_count FROM articles WHERE scrape_status = 'failed' AND retry_count < 3`
 	err := r.db.SelectContext(ctx, &articles, query)
-	return articles, err
+	if err != nil {
+		slog.Error("Failed to get failed scrapes", "error", err)
+		return nil, err
+	}
+
+	return articles, nil
 }
 
 func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userEmail string) ([]model.Article, error) {
@@ -119,10 +151,11 @@ func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userE
         LIMIT 10
     `
 
-	var articles []model.ArticleScore
+	var articles []repository.ArticleScore
 	err := r.db.SelectContext(ctx, &articles, query, userEmail)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find recommend articles: %w", err)
+		slog.Error("Failed to find recommend articles", "error", err)
+		return nil, err
 	}
 
 	result := make([]model.Article, len(articles))
@@ -138,5 +171,10 @@ func (r *sqlxArticleRepository) FindLatestArticles(ctx context.Context, userEmai
 	var articles []model.Article
 	query := `SELECT id, url, title, description, image_url FROM articles WHERE user_email != $1 ORDER BY created_at DESC LIMIT $2`
 	err := r.db.SelectContext(ctx, &articles, query, userEmail, limit)
-	return articles, err
+	if err != nil {
+		slog.Error("Failed to find latest articles", "error", err)
+		return nil, err
+	}
+
+	return articles, nil
 }

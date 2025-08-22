@@ -2,9 +2,9 @@ package sqlximpl
 
 import (
 	"context"
-	"database/sql"
 	"deeliai/internal/model"
 	"deeliai/internal/repository"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,6 +24,7 @@ func (r *sqlxUserRepository) Create(ctx context.Context, user *model.User) (*mod
 	// 對於 MySQL，需要用 LastInsertId()
 	err := r.db.QueryRowxContext(ctx, query, user.Email, user.Password).StructScan(newUser)
 	if err != nil {
+		slog.Error("Failed to create user", "error", err)
 		return nil, err
 	}
 
@@ -35,10 +36,9 @@ func (r *sqlxUserRepository) FindByEmail(ctx context.Context, email string) (*mo
 	query := `SELECT email, password, created_at, updated_at FROM users WHERE email=$1`
 	err := r.db.GetContext(ctx, user, query, email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // 或者回傳一個自訂的 not found error
-		}
+		slog.Error("Failed to get user by email", "error", err)
 		return nil, err
 	}
+
 	return user, nil
 }

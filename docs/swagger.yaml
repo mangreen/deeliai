@@ -1,0 +1,528 @@
+definitions:
+  handler.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.PostArticleRequest:
+    properties:
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  handler.RateArticleRequest:
+    properties:
+      scores:
+        maximum: 5
+        minimum: 1
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+    - scores
+    - tags
+    type: object
+  handler.SignupRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.StandardResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+  model.Article:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      scrape_status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+      user_email:
+        type: string
+    type: object
+  model.Rating:
+    properties:
+      article_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      scores:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+      user_email:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /articles:
+    get:
+      description: 獲取使用者收藏的文章列表
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 10
+        description: 限制返回數量
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 跳過數量
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功獲取文章列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Article'
+                  type: array
+              type: object
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 獲取文章列表
+      tags:
+      - articles
+    post:
+      consumes:
+      - application/json
+      description: 提交一個文章 URL，後台會自動爬取 metadata
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 文章 URL
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.PostArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: 文章正在處理中
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Article'
+              type: object
+        "400":
+          description: 無效的請求或 URL
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 提交新文章
+      tags:
+      - articles
+  /articles/{id}:
+    delete:
+      description: 刪除使用者收藏的指定文章
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 文章 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: 文章成功刪除
+        "400":
+          description: 無效的文章 ID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 文章不存在
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 刪除文章
+      tags:
+      - articles
+  /articles/{id}/rate:
+    delete:
+      description: 刪除使用者對指定文章的評分與標籤
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 文章 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: 評分成功刪除
+        "400":
+          description: 無效的文章 ID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 找不到評分
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 刪除評分
+      tags:
+      - ratings
+    get:
+      description: 獲取使用者對指定文章的評分與標籤
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 文章 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功獲取評分
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Rating'
+              type: object
+        "400":
+          description: 無效的文章 ID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 找不到評分
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 獲取使用者對文章的評分
+      tags:
+      - ratings
+    post:
+      consumes:
+      - application/json
+      description: 為指定文章評分並新增標籤
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 文章 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 評分與標籤
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 評分成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Rating'
+              type: object
+        "400":
+          description: 無效的請求或評分值
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 未授權
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 評分並標記文章
+      tags:
+      - ratings
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 使用者憑 E-mail 和密碼登入
+      parameters:
+      - description: 登入請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  properties:
+                    token:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: 無效的請求
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 憑證無效
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 使用者登入
+      tags:
+      - users
+  /me:
+    get:
+      description: 透過 JWT 驗證獲取使用者個人資料
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功獲取使用者資料
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "401":
+          description: 未授權，JWT 驗證失敗
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 獲取使用者個人資料
+      tags:
+      - users
+  /recommendations:
+    get:
+      description: 根據使用者的歷史評分與標籤，推薦相關的新文章
+      parameters:
+      - default: Bearer <your_JWT_token>
+        description: JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功獲取推薦文章列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Article'
+                  type: array
+              type: object
+        "401":
+          description: 未授權，JWT 驗證失敗
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 獲取文章推薦列表
+      tags:
+      - recommendations
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: 使用者註冊一個新帳號
+      parameters:
+      - description: 註冊請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "400":
+          description: 無效的請求
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 內部伺服器錯誤
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 註冊新使用者
+      tags:
+      - users
+swagger: "2.0"

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"deeliai/internal/service"
@@ -17,90 +18,121 @@ func NewRatingHandler(s *service.RatingService) *RatingHandler {
 	return &RatingHandler{ratingService: s}
 }
 
-type RantingRequest struct {
-	Rating int      `json:"rating" binding:"required,gte=1,lte=5"`
-	Tags   []string `json:"tags" binding:"required"`
-}
-
-// RateArticle 處理 POST /articles/:id/rate 請求
+// @Summary 評分並標記文章
+// @Description 為指定文章評分並新增標籤
+// @Tags ratings
+// @Security BearerAuth
+// @Param Authorization header string true "JWT token" default(Bearer <your_JWT_token>)
+// @Accept json
+// @Produce json
+// @Param id path string true "文章 ID"
+// @Param request body RateArticleRequest true "評分與標籤"
+// @Success 200 {object} StandardResponse{data=model.Rating} "評分成功"
+// @Failure 400 {object} ErrorResponse "無效的請求或評分值"
+// @Failure 401 {object} ErrorResponse "未授權"
+// @Failure 500 {object} ErrorResponse "內部伺服器錯誤"
+// @Router /articles/{id}/rate [post]
 func (h *RatingHandler) RateArticle(c *gin.Context) {
 	articleID := c.Param("id")
 	articleUUID, err := uuid.Parse(articleID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid article id"})
+		RespondWithError(c, http.StatusUnauthorized, err, "Invalid article id")
 		return
 	}
 
 	emailAny, exists := c.Get("email")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		RespondWithError(c, http.StatusUnauthorized, errors.New(""), "User not authenticated")
 		return
 	}
 
-	var req RantingRequest
+	var req RateArticleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
+		RespondWithError(c, http.StatusBadRequest, err, "Invalid request body")
 		return
 	}
 
 	if len(req.Tags) < 1 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request body: at least 1 tag"})
+		RespondWithError(c, http.StatusBadRequest, err, "At least 1 tag")
 		return
 	}
 
-	rating, err := h.ratingService.RateArticle(c.Request.Context(), emailAny.(string), articleUUID, req.Rating, req.Tags)
+	rating, err := h.ratingService.RateArticle(c.Request.Context(), emailAny.(string), articleUUID, req.Scores, req.Tags)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		RespondWithError(c, http.StatusInternalServerError, err, "Something went wrong")
 		return
 	}
 
-	c.JSON(http.StatusOK, rating)
+	RespondWithSuccess(c, http.StatusCreated, "Post success", rating)
 }
 
-// GetRating 處理 GET /articles/:id/rate 請求
+// @Summary 獲取使用者對文章的評分
+// @Description 獲取使用者對指定文章的評分與標籤
+// @Tags ratings
+// @Security BearerAuth
+// @Param Authorization header string true "JWT token" default(Bearer <your_JWT_token>)
+// @Produce json
+// @Param id path string true "文章 ID"
+// @Success 200 {object} StandardResponse{data=model.Rating} "成功獲取評分"
+// @Failure 400 {object} ErrorResponse "無效的文章 ID"
+// @Failure 401 {object} ErrorResponse "未授權"
+// @Failure 404 {object} ErrorResponse "找不到評分"
+// @Failure 500 {object} ErrorResponse "內部伺服器錯誤"
+// @Router /articles/{id}/rate [get]
 func (h *RatingHandler) GetRating(c *gin.Context) {
 	articleID := c.Param("id")
 	articleUUID, err := uuid.Parse(articleID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid article id"})
+		RespondWithError(c, http.StatusUnauthorized, err, "Invalid article id")
 		return
 	}
 
 	emailAny, exists := c.Get("email")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		RespondWithError(c, http.StatusUnauthorized, errors.New(""), "User not authenticated")
 		return
 	}
 
 	rating, err := h.ratingService.GetRating(c.Request.Context(), emailAny.(string), articleUUID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "rating not found"})
+		RespondWithError(c, http.StatusInternalServerError, err, "Something went wrong")
 		return
 	}
 
-	c.JSON(http.StatusOK, rating)
+	RespondWithSuccess(c, http.StatusOK, "Get success", rating)
 }
 
-// DeleteRating 處理 DELETE /articles/:id/rate 請求
+// @Summary 刪除評分
+// @Description 刪除使用者對指定文章的評分與標籤
+// @Tags ratings
+// @Security BearerAuth
+// @Param Authorization header string true "JWT token" default(Bearer <your_JWT_token>)
+// @Param id path string true "文章 ID"
+// @Success 204 "評分成功刪除"
+// @Failure 400 {object} ErrorResponse "無效的文章 ID"
+// @Failure 401 {object} ErrorResponse "未授權"
+// @Failure 404 {object} ErrorResponse "找不到評分"
+// @Failure 500 {object} ErrorResponse "內部伺服器錯誤"
+// @Router /articles/{id}/rate [delete]
 func (h *RatingHandler) DeleteRating(c *gin.Context) {
 	articleID := c.Param("id")
 	articleUUID, err := uuid.Parse(articleID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid article id"})
+		RespondWithError(c, http.StatusUnauthorized, err, "Invalid article id")
 		return
 	}
 
 	emailAny, exists := c.Get("email")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		RespondWithError(c, http.StatusUnauthorized, errors.New(""), "User not authenticated")
 		return
 	}
 
 	err = h.ratingService.Delete(c.Request.Context(), emailAny.(string), articleUUID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		RespondWithError(c, http.StatusInternalServerError, err, "Something went wrong")
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	RespondWithSuccess(c, http.StatusOK, "Delete success", nil)
 }

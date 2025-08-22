@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"log/slog"
 
 	"deeliai/internal/model"
 	"deeliai/internal/repository"
@@ -52,10 +52,12 @@ func (r *sqlxRatingRepository) CreateOrUpdate(ctx context.Context, rating *model
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("cannot rate: article not ready or not owned by user")
+			slog.Error("article not ready or not owned by user", "error", err)
+			return nil, err
 		}
 
-		return nil, fmt.Errorf("failed to create or update rating: %w", err)
+		slog.Error("failed to create or update rating", "error", err)
+		return nil, err
 	}
 
 	return &createdRating, nil
@@ -75,7 +77,8 @@ func (r *sqlxRatingRepository) FindRatingByUserEmailAndArticleID(ctx context.Con
 		&rating.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find rating: %w", err)
+		slog.Error("failed to find rating", "error", err)
+		return nil, err
 	}
 
 	return &rating, nil
@@ -86,11 +89,14 @@ func (r *sqlxRatingRepository) Delete(ctx context.Context, userEmail string, art
 	query := `DELETE FROM ratings WHERE user_email = $1 AND article_id = $2`
 	result, err := r.db.ExecContext(ctx, query, userEmail, articleID)
 	if err != nil {
+		slog.Error("failed to delete rating", "error", err)
 		return err
 	}
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("rating not found")
+
+	if rowsAffected, err := result.RowsAffected(); rowsAffected == 0 {
+		slog.Error("rating not found", "error", err)
+		return errors.New("rating not found")
 	}
+
 	return nil
 }

@@ -1,21 +1,32 @@
 package handler
 
 import (
+	"deeliai/docs"
 	"deeliai/internal/middleware"
 	"log/slog"
 	"time"
 
+	_ "deeliai/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title DeeliAI API
+// @version 1.0
+// @description 一個用於文章收藏與推薦的 AI 應用程式。
+// @host localhost:8080
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratingHandler *RatingHandler, recommendHandler *RecommendHandler) *gin.Engine {
 	// gin.ReleaseMode or gin.DebugMode
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
-
-	// 自訂的錯誤處理 Middleware
-	r.Use(middleware.ErrorMiddleware())
 
 	// 使用自訂的結構化日誌 Middleware
 	r.Use(func(c *gin.Context) {
@@ -33,8 +44,12 @@ func SetupRouter(userHandler *UserHandler, articleHandler *ArticleHandler, ratin
 		)
 	})
 
+	// Swagger 文件路由
+	docs.SwaggerInfo.BasePath = "/"
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 路由分組
-	r.POST("/signup", userHandler.CreateUser)
+	r.POST("/signup", userHandler.Signup)
 	r.POST("/login", userHandler.Login)
 	r.GET("/me", middleware.AuthMiddleware(userHandler.AuthService), userHandler.Me)
 
