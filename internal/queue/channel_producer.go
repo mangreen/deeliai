@@ -2,17 +2,17 @@ package queue
 
 import "errors"
 
-// ChannelProducer 是 QueueProducer 介面基於 Go Channel 的實現
-type ChannelProducer struct {
+// channelProducer 是 QueueProducer 介面基於 Go Channel 的實現
+type channelProducer struct {
 	queue chan string
 }
 
-func NewChannelProducer(queue chan string) *ChannelProducer {
-	return &ChannelProducer{queue: queue}
+func NewChannelProducer(queue chan string) QueueProducer {
+	return &channelProducer{queue: queue}
 }
 
 // Produce 將任務字串送入 Go Channel
-func (p *ChannelProducer) Produce(message string) error {
+func (p *channelProducer) Produce(message string) error {
 	select {
 	case p.queue <- message:
 		return nil
@@ -22,7 +22,7 @@ func (p *ChannelProducer) Produce(message string) error {
 }
 
 // Close 關閉 Go Channel
-func (p *ChannelProducer) Close() error {
+func (p *channelProducer) Close() error {
 	close(p.queue)
 	return nil
 }

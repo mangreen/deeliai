@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"deeliai/internal/queue"
 	"deeliai/internal/repository"
 
 	"github.com/PuerkitoBio/goquery"
@@ -15,15 +16,15 @@ import (
 
 type ScrapeWorker struct {
 	articleRepo repository.ArticleRepository
-	scrapeQueue chan string // 任務佇列
-	workerCount int         // worker 數量
+	consumer    queue.QueueConsumer
+	workerCount int // worker 數量
 }
 
 // NewScrapeWorker 接受 worker 數量作為參數
-func NewScrapeWorker(repo repository.ArticleRepository, queue chan string, count int) *ScrapeWorker {
+func NewScrapeWorker(repo repository.ArticleRepository, consumer queue.QueueConsumer, count int) *ScrapeWorker {
 	return &ScrapeWorker{
 		articleRepo: repo,
-		scrapeQueue: queue,
+		consumer:    consumer,
 		workerCount: count,
 	}
 }
@@ -34,18 +35,11 @@ func (w *ScrapeWorker) Start() {
 
 	// 啟動多個 worker goroutine
 	for i := 0; i < w.workerCount; i++ {
-		go w.startWorker(i)
+		log.Printf("Worker #%d started...", i)
+		// 呼叫 QueueConsumer 執行 processScrapeTask
+		w.consumer.Consume(w.processScrapeTask)
+		log.Printf("Worker #%d stopped.", i)
 	}
-}
-
-// startWorker 是單一 worker 的執行邏輯
-func (w *ScrapeWorker) startWorker(workerID int) {
-	log.Printf("Worker #%d started...", workerID)
-	// 每個 worker 都是一個無窮迴圈，持續從 channel 中讀取任務
-	for articleID := range w.scrapeQueue {
-		w.processScrapeTask(articleID)
-	}
-	log.Printf("Worker #%d stopped.", workerID)
 }
 
 // processScrapeTask 處理單個爬取任務

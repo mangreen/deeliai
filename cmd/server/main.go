@@ -97,8 +97,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// 這裡決定使用 ChannelProducer
+	consumer := queue.NewChannelConsumer(scrapeQueue)
+
 	// 啟動背景 worker
-	scrapeWorker := scraper.NewScrapeWorker(articleRepo, scrapeQueue, 2)
+	scrapeWorker := scraper.NewScrapeWorker(articleRepo, consumer, 2)
 	go scrapeWorker.Start()
 
 	// 啟動排程器 (僅負責生產)
