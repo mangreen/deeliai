@@ -6,18 +6,16 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository" // 注意：這裡導入的是介面套件
 )
 
 // UserService 包含業務邏輯
 type UserService struct {
-	userRepo repository.UserRepository // 依賴介面，而非實作
+	userRepo interfaces.UserRepository // 依賴介面，而非實作
 }
 
-// NewU 是一個工廠函式，用於建立 userService
-// 這就是所謂的 "依賴注入"
-func NewUserService(repo repository.UserRepository) *UserService {
+func NewUserService(repo interfaces.UserRepository) *UserService {
 	return &UserService{
 		userRepo: repo,
 	}

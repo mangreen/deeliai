@@ -1,13 +1,16 @@
 package queue
 
-import "errors"
+import (
+	"deeliai/internal/interfaces"
+	"errors"
+)
 
 // channelProducer 是 QueueProducer 介面基於 Go Channel 的實現
 type channelProducer struct {
 	queue chan string
 }
 
-func NewChannelProducer(queue chan string) QueueProducer {
+func NewChannelProducer(queue chan string) interfaces.QueueProducer {
 	return &channelProducer{queue: queue}
 }
 

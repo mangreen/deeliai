@@ -2,16 +2,16 @@ package service
 
 import (
 	"context"
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository"
 )
 
 type RecommendService struct {
-	articleRepo repository.ArticleRepository
-	ratingRepo  repository.RatingRepository
+	articleRepo interfaces.ArticleRepository
+	ratingRepo  interfaces.RatingRepository
 }
 
-func NewRecommendService(articleRepo repository.ArticleRepository, ratingRepo repository.RatingRepository) *RecommendService {
+func NewRecommendService(articleRepo interfaces.ArticleRepository, ratingRepo interfaces.RatingRepository) *RecommendService {
 	return &RecommendService{
 		articleRepo: articleRepo,
 		ratingRepo:  ratingRepo,

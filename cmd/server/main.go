@@ -66,6 +66,7 @@ func main() {
 	articleService := service.NewArticleService(articleRepo, producer)
 	ratingService := service.NewRatingService(ratingRepo)
 	recommendService := service.NewRecommendService(articleRepo, ratingRepo)
+	scrapeService := service.NewScrapeService(articleRepo)
 
 	userHandler := handler.NewUserHandler(userService, authService)
 	articleHandler := handler.NewArticleHandler(articleService)
@@ -92,16 +93,13 @@ func main() {
 		}
 	}()
 
-	// 建立一個 WithCancel context
+	// 這裡決定使用 ChannelProducer
+	consumer := queue.NewChannelConsumer(scrapeQueue, scrapeService, 2)
+	consumer.Start()
+
+	// 建立一個有超時的 context，例如 5 秒
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// 使用 ChannelConsumer
-	consumer := queue.NewChannelConsumer(scrapeQueue)
-
-	// 啟動背景 worker
-	scrapeWorker := scraper.NewScrapeWorker(articleRepo, consumer, 2)
-	scrapeWorker.Start()
 
 	// 啟動排程器 (僅負責生產)
 	scrapeScheduler := scraper.NewScrapeScheduler(articleRepo, producer)

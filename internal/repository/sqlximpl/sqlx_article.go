@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -17,7 +17,7 @@ type sqlxArticleRepository struct {
 	db *sqlx.DB
 }
 
-func NewArticleRepository(db *sqlx.DB) repository.ArticleRepository {
+func NewArticleRepository(db *sqlx.DB) interfaces.ArticleRepository {
 	return &sqlxArticleRepository{db: db}
 }
 
@@ -151,7 +151,7 @@ func (r *sqlxArticleRepository) ListRecommendArticles(ctx context.Context, userE
         LIMIT 10
     `
 
-	var articles []repository.ArticleScore
+	var articles []interfaces.ArticleScore
 	err := r.db.SelectContext(ctx, &articles, query, userEmail)
 	if err != nil {
 		slog.Error("Failed to find recommend articles", "error", err)

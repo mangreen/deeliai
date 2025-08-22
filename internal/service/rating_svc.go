@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository"
 
 	"github.com/google/uuid"
 )
 
 type RatingService struct {
-	ratingRepo repository.RatingRepository
+	ratingRepo interfaces.RatingRepository
 }
 
-func NewRatingService(repo repository.RatingRepository) *RatingService {
+func NewRatingService(repo interfaces.RatingRepository) *RatingService {
 	return &RatingService{ratingRepo: repo}
 }
 

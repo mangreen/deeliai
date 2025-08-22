@@ -5,19 +5,18 @@ import (
 	"context"
 	"fmt"
 
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/queue"
-	"deeliai/internal/repository"
 
 	"github.com/google/uuid"
 )
 
 type ArticleService struct {
-	articleRepo repository.ArticleRepository
-	producer    queue.QueueProducer // 依賴介面
+	articleRepo interfaces.ArticleRepository
+	producer    interfaces.QueueProducer // 依賴介面
 }
 
-func NewArticleService(repo repository.ArticleRepository, producer queue.QueueProducer) *ArticleService {
+func NewArticleService(repo interfaces.ArticleRepository, producer interfaces.QueueProducer) *ArticleService {
 	return &ArticleService{
 		articleRepo: repo,
 		producer:    producer,

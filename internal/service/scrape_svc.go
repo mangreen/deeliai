@@ -1,55 +1,29 @@
-package scraper
+package service
 
 import (
 	"context"
+	"deeliai/internal/interfaces"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
-
-	"deeliai/internal/queue"
-	"deeliai/internal/repository"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/google/uuid"
 )
 
-type ScrapeWorker struct {
-	articleRepo repository.ArticleRepository
-	consumer    queue.QueueConsumer
-	workerCount int // worker 數量
+type ScrapeService struct {
+	articleRepo interfaces.ArticleRepository
 }
 
-// NewScrapeWorker 接受 worker 數量作為參數
-func NewScrapeWorker(repo repository.ArticleRepository, consumer queue.QueueConsumer, count int) *ScrapeWorker {
-	return &ScrapeWorker{
+// NewScrapeService 接受 worker 數量作為參數
+func NewScrapeService(repo interfaces.ArticleRepository) *ScrapeService {
+	return &ScrapeService{
 		articleRepo: repo,
-		consumer:    consumer,
-		workerCount: count,
 	}
 }
 
-// Start 啟動 worker pool
-func (w *ScrapeWorker) Start() {
-	log.Printf("Starting %d scrape workers...", w.workerCount)
-
-	// 啟動多個 worker goroutine
-	for i := 0; i < w.workerCount; i++ {
-		log.Printf("Worker #%d started...", i)
-		// 呼叫 QueueConsumer 執行 processScrapeTask
-		go func(id int) {
-			w.consumer.Consume(w.processScrapeTask)
-			log.Printf("Worker #%d stopped.", id) // 真的退出時才印
-		}(i)
-	}
-}
-
-// processScrapeTask 處理單個爬取任務
-func (w *ScrapeWorker) processScrapeTask(articleID string) {
-	// 確保每個單獨的爬取任務都有自己的超時控制
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
+// ProcessScrapeTask 處理單個爬取任務
+func (w *ScrapeService) ProcessScrapeTask(ctx context.Context, articleID string) {
 	id, err := uuid.Parse(articleID)
 	if err != nil {
 		log.Printf("Invalid article ID in queue: %s", articleID)
@@ -82,7 +56,7 @@ func (w *ScrapeWorker) processScrapeTask(articleID string) {
 }
 
 // scrapeMetadata 實際的爬取邏輯，使用 goquery
-func (w *ScrapeWorker) scrapeMetadata(url string) (title, description, imageURL string, err error) {
+func (w *ScrapeService) scrapeMetadata(url string) (title, description, imageURL string, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", "", "", err

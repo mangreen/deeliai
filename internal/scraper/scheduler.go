@@ -2,20 +2,18 @@ package scraper
 
 import (
 	"context"
+	"deeliai/internal/interfaces"
 	"log"
 	"time"
-
-	"deeliai/internal/queue"
-	"deeliai/internal/repository"
 )
 
 // ScrapeScheduler 定時檢查失敗的爬取任務並重新排入佇列
 type ScrapeScheduler struct {
-	articleRepo repository.ArticleRepository
-	producer    queue.QueueProducer
+	articleRepo interfaces.ArticleRepository
+	producer    interfaces.QueueProducer
 }
 
-func NewScrapeScheduler(repo repository.ArticleRepository, producer queue.QueueProducer) *ScrapeScheduler {
+func NewScrapeScheduler(repo interfaces.ArticleRepository, producer interfaces.QueueProducer) *ScrapeScheduler {
 	return &ScrapeScheduler{
 		articleRepo: repo,
 		producer:    producer,

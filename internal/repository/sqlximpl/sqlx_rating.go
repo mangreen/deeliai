@@ -6,8 +6,8 @@ import (
 	"errors"
 	"log/slog"
 
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -18,7 +18,7 @@ type sqlxRatingRepository struct {
 	db *sqlx.DB
 }
 
-func NewRatingRepository(db *sqlx.DB) repository.RatingRepository {
+func NewRatingRepository(db *sqlx.DB) interfaces.RatingRepository {
 	return &sqlxRatingRepository{db: db}
 }
 

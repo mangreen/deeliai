@@ -2,8 +2,8 @@ package sqlximpl
 
 import (
 	"context"
+	"deeliai/internal/interfaces"
 	"deeliai/internal/model"
-	"deeliai/internal/repository"
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
@@ -13,7 +13,7 @@ type sqlxUserRepository struct {
 	db *sqlx.DB
 }
 
-func NewUserRepository(db *sqlx.DB) repository.UserRepository {
+func NewUserRepository(db *sqlx.DB) interfaces.UserRepository {
 	return &sqlxUserRepository{db: db}
 }
 

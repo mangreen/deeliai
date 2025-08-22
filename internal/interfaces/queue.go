@@ -1,4 +1,4 @@
-package queue
+package interfaces
 
 // QueueProducer 是將任務發布到佇列的抽象介面
 type QueueProducer interface {
@@ -10,6 +10,7 @@ type QueueProducer interface {
 
 // QueueConsumer 是處理任務的抽象介面
 type QueueConsumer interface {
+	Start()
 	// Produce 方法接受一個任務字串，並將其發布
-	Consume(callback func(string))
+	Consume()
 }
