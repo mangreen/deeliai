@@ -51,11 +51,10 @@ func main() {
 
 	// 建立一個有緩衝的爬取任務佇列
 	scrapeQueue := make(chan string, 100)
-	defer close(scrapeQueue)
 
 	// 這裡決定使用 ChannelProducer
 	producer := queue.NewChannelProducer(scrapeQueue)
-	defer producer.Close() // 確保在應用程式結束時關閉 channel
+	defer producer.Close() // 移除 defer close(scrapeQueue) 只留這個 close，避免 double close
 
 	// 依賴注入：組裝 Repository, Service, Handler
 	userRepo := sqlximpl.NewUserRepository(db)
@@ -93,16 +92,16 @@ func main() {
 		}
 	}()
 
-	// 建立一個有超時的 context，例如 5 秒
+	// 建立一個 WithCancel context
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 這裡決定使用 ChannelProducer
+	// 使用 ChannelConsumer
 	consumer := queue.NewChannelConsumer(scrapeQueue)
 
 	// 啟動背景 worker
 	scrapeWorker := scraper.NewScrapeWorker(articleRepo, consumer, 2)
-	go scrapeWorker.Start()
+	scrapeWorker.Start()
 
 	// 啟動排程器 (僅負責生產)
 	scrapeScheduler := scraper.NewScrapeScheduler(articleRepo, producer)

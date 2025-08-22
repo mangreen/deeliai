@@ -1,4 +1,3 @@
-// internal/queue/producer.go
 package queue
 
 // QueueProducer 是將任務發布到佇列的抽象介面
