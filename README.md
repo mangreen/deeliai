@@ -88,7 +88,7 @@ cd deeli-ai
 
 2. 啟動 PostgreSQL 資料庫
 ```
-docker-compose up -d postgres
+docker-compose up -d
 ```
 
 3. 執行資料庫 Migration
